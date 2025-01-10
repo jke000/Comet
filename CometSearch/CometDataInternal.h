@@ -492,6 +492,11 @@ struct FragmentPeptidesStruct
    }
 };
 
+struct SpecLibInfo
+{
+   string strSpecLib;
+};
+
 extern unsigned int** g_iFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];           // 4D array [thread][precursor_mass][BIN[fragment mass)][which entries in g_vFragmentPeptides]
 extern unsigned int* g_iCountFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];       // array of ints: [thread][precursor_mass][BIN(fragment mass)][which entries in g_vFragmentPeptides]
 extern vector<struct FragmentPeptidesStruct> g_vFragmentPeptides;
@@ -700,6 +705,7 @@ struct StaticParams
    char            szDate[32];
    Options         options;
    DBInfo          databaseInfo;
+   SpecLibInfo     speclibInfo;
    PEFFInfo        peffInfo;
    InputFileInfo   inputFile;
    int             bPrintDuplReferences;
@@ -745,6 +751,7 @@ struct StaticParams
        strcpy(szDate, a.szDate);
        options = a.options;
        databaseInfo = a.databaseInfo;
+       speclibInfo = a.speclibInfo;
        inputFile = a.inputFile;
        bPrintDuplReferences = a.bPrintDuplReferences;
        variableModParameters = a.variableModParameters;
@@ -773,6 +780,7 @@ struct StaticParams
       iIndexDb = 0;
 
       databaseInfo.szDatabase[0] = '\0';
+      speclibInfo.strSpecLib.clear();
 
       strcpy(szDecoyPrefix, "DECOY_");
       strcpy(szTxtFileExt, "txt");
@@ -978,6 +986,7 @@ extern int MOD_NUM;
 extern bool g_bPlainPeptideIndexRead;   // set to true if plain peptide index file is read (and fragment index generated)
                                         // poor choice of name for the fragment index .idx given peptide index is back
 extern bool g_bPeptideIndexRead;        // set to true if peptide index file is read
+extern bool g_bSpecLibRead;             // set to true if spectral library file is read
 
 // Query stores information for peptide scoring and results
 // This struct is allocated for each spectrum/charge combination
@@ -1142,6 +1151,7 @@ extern Mutex                   g_pvDBIndexMutex;
 extern Mutex                   g_preprocessMemoryPoolMutex;
 extern Mutex                   g_searchMemoryPoolMutex;
 extern Mutex                   g_dbIndexMutex;
+extern Mutex                   g_vSpecLibMutex;
 
 struct IonSeriesStruct         // defines which fragment ion series are considered
 {

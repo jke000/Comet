@@ -55,6 +55,7 @@ vector<struct FragmentPeptidesStruct> g_vFragmentPeptides;  // each peptide is r
 vector<PlainPeptideIndex> g_vRawPeptides;                   // list of unmodified peptides and their proteins as file pointers
 bool g_bPlainPeptideIndexRead = false;
 bool g_bPeptideIndexRead = false;
+bool g_bSpecLibRead = false;
 FILE* fpfasta;      // file pointer to FASTA; would be same as fpdb if input db was already FASTA but otherwise needed if input is .idx file
 
 
