@@ -880,6 +880,35 @@ bool CometSearch::RunSearch(int iPercentStart,
 }
 
 
+bool CometSearch::RunSpecLibSearch(ThreadPool *tp)
+{
+   printf("OK in RunSpecLib\n");
+
+   return true;
+}
+
+
+bool CometSearch::RunSpecLibSearch(int iPercentStart,
+                                   int iPercentEnd,
+                                   ThreadPool *tp)
+{
+   printf("\nOKa in RunSpecLib\n");
+
+   // Do a binned mass check as first pass? Will it make it faster?
+   int i = 0;
+   for (auto it = g_pvQuery.begin(); it != g_pvQuery.end(); ++it)
+   {
+      if (g_viPrecursorMass[PRECURSORBIN((*it)->_pepMassInfo.dExpPepMass)])
+      {
+         printf("OK query mass %lf\n", (*it)->_pepMassInfo.dExpPepMass);
+         if (++i > 9)
+             break;
+      }
+   }
+   return true;
+}
+
+
 void CometSearch::ReadOBO(char *szOBO,
                           vector<OBOStruct> *vectorPeffOBO)
 {
@@ -2579,7 +2608,7 @@ bool CometSearch::SearchForPeptides(struct sDBEntry dbe,
                   sEntry.lIndexProteinFilePosition = _proteinInfo.lProteinFilePosition;
                   memset(sEntry.pcVarModSites, 0, sizeof(char) * (iLenPeptide + 2));
 
-                  g_pvDBIndex.push_back(sEntry);  // can save a few transient bytes by going with <PlainPeptideIndex> g_vRawPeptides here
+                  g_pvDBIndex.push_back(sEntry);  // can save a few transient bytes by going with <PlainPeptideIndexStruct> g_vRawPeptides here
                }
 
                Threading::UnlockMutex(g_pvDBIndexMutex);

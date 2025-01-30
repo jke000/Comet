@@ -70,6 +70,10 @@ public:
                          int iPercentEnd,
                          ThreadPool *tp);
    static bool RunSearch(ThreadPool *tp);    // for DoSingleSpectrumSearch() to call IndexSearch()
+   static bool RunSpecLibSearch(int iPercentStart,
+                                int iPercentEnd,
+                                ThreadPool *tp);
+   static bool RunSpecLibSearch(ThreadPool *tp);    // for DoSingleSpectrumSearch() to call IndexSearch()
    static void SearchThreadProc(SearchThreadData *pSearchThreadData,
                                 ThreadPool *tp);
    bool DoSearch(sDBEntry dbe,

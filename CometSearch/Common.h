@@ -78,6 +78,8 @@ extern string g_sCometVersion;   // version string including git hash
 // now between 0.0 and 1.0 and scales to the binWidth.
 #define BIN(dMass) (int)((dMass)*g_staticParams.dInverseBinWidth + g_staticParams.dOneMinusBinOffset)
 
+#define BINPREC(dMass) (int)(dMass / dPrecursorBinSize) 
+
 #define isEqual(x, y) (std::abs(x-y) <= ( (std::abs(x) > std::abs(y) ? std::abs(y) : std::abs(x)) * FLT_EPSILON))
 
 #define cometbitset(byte, nbit)   ((byte) |=  (1<<(nbit)))  // https://www.codementor.io/@hbendali/c-c-macro-bit-operations-ztrat0et6

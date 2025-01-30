@@ -45,6 +45,18 @@ bool CometSpecLib::ReadSpecLib(string strSpecLibFile)
    if (g_bSpecLibRead)
       return true;
 
+   if ((fp = fopen(g_staticParams.speclibInfo.strSpecLibFile.c_str(), "r")) == NULL)
+   {
+      char szErrorMsg[SIZE_ERROR];
+      sprintf(szErrorMsg, "Error, spectral library file cannot be read: '%s'.\n", g_staticParams.speclibInfo.strSpecLibFile.c_str());
+      string strErrorMsg(szErrorMsg);
+      g_cometStatus.SetStatus(CometResult_Failed, strErrorMsg);
+      logerr(szErrorMsg);
+      return false;
+   }
+   else
+      fclose(fp);
+
    // Transform to lower case for case insensitive file extension match
    std::string strLowerFileName = strSpecLibFile;
    std::transform(strLowerFileName.begin(), strLowerFileName.end(), strLowerFileName.begin(), ::tolower);
@@ -62,12 +74,17 @@ bool CometSpecLib::ReadSpecLib(string strSpecLibFile)
 
    if (strExtension == ".db")
    {
-      if (!ReadSpecLibSqlite(g_staticParams.speclibInfo.strSpecLib))
+      if (!ReadSpecLibSqlite(g_staticParams.speclibInfo.strSpecLibFile))
          return false;
    }
    else if (strExtension == ".raw")
    {
-      if (!ReadSpecLibRaw(g_staticParams.speclibInfo.strSpecLib))
+      if (!ReadSpecLibRaw(g_staticParams.speclibInfo.strSpecLibFile))
+         return false;
+   }
+   else if (strExtension == ".msp")
+   {
+      if (!ReadSpecLibMSP(g_staticParams.speclibInfo.strSpecLibFile))
          return false;
    }
    else
@@ -82,22 +99,34 @@ bool CometSpecLib::ReadSpecLib(string strSpecLibFile)
 
    g_bSpecLibRead = true;
 
+   for (auto it = g_vSpecLib.begin(); it != g_vSpecLib.end(); ++it)
+   {
+      printf("OK.  %d, %s, %d peaks\n", (*it).iLibEntry, (*it).strName.c_str(), (*it).iNumPeaks);
+      
+      for (int i = 0; i < (*it).iNumPeaks; ++i)
+      {
+         printf("\t%0.2lf\t%0.2lf\n", (*it).vPeaks.at(i).first, (*it).vPeaks.at(i).second);
+         if (i == 4)
+            break;
+      }
+   }
+
    return true;
 }
 
 
-bool CometSpecLib::ReadSpecLibSqlite(string strSpecLib)
+bool CometSpecLib::ReadSpecLibSqlite(string strSpecLibFile)
 {
    sqlite3* db;
    sqlite3_stmt* stmt;
    const char* sql = "SELECT * FROM SpectrumTable";
 
    // Open the database
-   if (sqlite3_open(strSpecLib.c_str(), &db) != SQLITE_OK)
+   if (sqlite3_open(strSpecLibFile.c_str(), &db) != SQLITE_OK)
    {
 //    std::cerr << "Cannot open sqlite database: " << sqlite3_errmsg(db) << std::endl;
       char szErrorMsg[SIZE_ERROR];
-      sprintf(szErrorMsg, "Error - cannot open sqlite database file '%s': %s.\n", strSpecLib.c_str(), sqlite3_errmsg(db));
+      sprintf(szErrorMsg, "Error - cannot open sqlite database file '%s': %s.\n", strSpecLibFile.c_str(), sqlite3_errmsg(db));
       string strErrorMsg(szErrorMsg);
       g_cometStatus.SetStatus(CometResult_Failed, strErrorMsg);
       logerr(szErrorMsg);
@@ -167,8 +196,99 @@ bool CometSpecLib::ReadSpecLibSqlite(string strSpecLib)
 }
 
 
-bool CometSpecLib::ReadSpecLibRaw(string strSpecLib)
+bool CometSpecLib::ReadSpecLibRaw(string strSpecLibFile)
 {
+   // set MS level to parse for spectral library based on XXX
+}
+
+
+// MSP format:
+//
+// Name: AAAGELQEDSGLMALAK/2_0_30eV
+// MW: 1675.8440
+// Comment: Single Pep=Tryptic Mods=0 Fullname=K.AAAGELQEDSGLMALAK.L/2 Charge=2 Parent=837.9220 Mz_diff=1.0ppm  HCD=30.00% Scan=81146 Origfile="2018...
+// Num peaks: 201
+// 101.071	2366.7	"IQA/0.6ppm"
+// 102.0552	4117.3	"IEA/2.4ppm"
+// 105.0657	730.7	"?"
+// 107.4682	612.6	"?"
+bool CometSpecLib::ReadSpecLibMSP(string strSpecLibFile)
+{
+   FILE *fp;
+
+   if ( (fp=fopen(strSpecLibFile.c_str(), "r")) == NULL)
+   {
+      char szErrorMsg[SIZE_ERROR];
+      sprintf(szErrorMsg, "Error, MSP spectral library file cannot be read: '%s'.\n", strSpecLibFile.c_str());
+      string strErrorMsg(szErrorMsg);
+      g_cometStatus.SetStatus(CometResult_Failed, strErrorMsg);
+      logerr(szErrorMsg);
+      return false;
+   }
+
+   char szBuf[SIZE_BUF];
+   char szTmp[SIZE_BUF];
+   int iWhichLibEntry = 0;
+
+   fgets(szBuf, SIZE_BUF, fp);
+   while (!feof(fp))
+   {
+      szBuf[SIZE_BUF - 1] = '\0'; // terminate string in case line was longer than SIZE_BUF
+
+      if (!strncpy(szBuf, "Name:", 5))
+      {
+         iWhichLibEntry++;
+
+         if (szBuf[strlen(szBuf) - 1] != '\n') // really long Name: line, parse to newline char
+         {
+            char cChar;
+            cChar = szBuf[strlen(szBuf)-1];
+            while (cChar != '\n')
+            {
+               cChar = getc(fp);
+            }
+         }
+         while (szBuf[strlen(szBuf) - 1] == '\r' || szBuf[strlen(szBuf) - 1] == '\n')
+            szBuf[strlen(szBuf) - 1] = '\0';
+
+         sscanf(szBuf + 6, "%s", szTmp);
+
+         struct SpecLibStruct pTmp;
+         pTmp.strName = szTmp;
+         pTmp.iLibEntry = iWhichLibEntry;
+
+         while (fgets(szBuf, SIZE_BUF, fp))
+         {
+            if (!strncpy(szBuf, "Name:", 5))
+               break;
+            else if (!strncpy(szBuf, "Num Peaks:", 10))
+            {
+               int iNumPeaks = 0;
+               sscanf(szBuf + 11, "%d", &iNumPeaks);
+
+               pTmp.iNumPeaks = iNumPeaks;
+
+               for (int i = 0; i < iNumPeaks; ++i)
+               {
+                  double dMass;
+                  double dInten;
+
+                  fgets(szBuf, SIZE_BUF, fp);
+                  sscanf(szBuf, "%lf %lf %*s", &dMass, &dInten);
+
+                  if (dMass > 0.0 && dMass <1e6 && dInten > 0.0)  // some sanity check on parsed mass
+                     pTmp.vPeaks.push_back(make_pair(dMass, dInten));
+               }
+
+               break;
+            }
+         }
+
+         g_vSpecLib.push_back(pTmp);
+      }
+   }
+
+   fclose(fp);
 }
 
 
@@ -189,6 +309,7 @@ bool CometSpecLib::SearchSpecLib(int iWhichQuery,
 */
    return true;
 }
+
 
 // Function to decode BLOB data as an array of 8-byte floats
 std::vector<double> decodeBlob(const void* blob, int size)
@@ -227,4 +348,3 @@ void printDoubleVector(const std::vector<double>& vec)
     }
     std::cout << "]" << std::endl;
 }
-

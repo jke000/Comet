@@ -333,6 +333,30 @@ void LoadParameters(char *pszParamsFile,
                strcpy(szFile, szParamVal);
                pSearchMgr->SetParam("database_name", szFile, szFile);
             }
+            else if (!strcmp(szParamName, "spectral_library_name"))
+            {
+               char szFile[SIZE_FILE];
+
+               // Support parsing a database string from params file that
+               // includes spaces in the path.
+
+               // Remove white spaces at beginning/end of szParamVal
+               int iLen = (int)strlen(szParamVal);
+               char *szTrimmed = szParamVal;
+
+               while (iLen > 0 && isspace(szTrimmed[iLen -1]))  // trim end
+                  szTrimmed[--iLen] = 0;
+               while (*szTrimmed && isspace(*szTrimmed))  // trim beginning
+               {
+                  ++szTrimmed;
+                  --iLen;
+               }
+
+               memmove(szParamVal, szTrimmed, iLen+1);
+
+               strcpy(szFile, szParamVal);
+               pSearchMgr->SetParam("spectral_library_name", szFile, szFile);
+            }
             else if (!strcmp(szParamName, "peff_obo"))
             {
                char szFile[SIZE_FILE];

@@ -263,7 +263,6 @@ struct Results
 
 struct PepMassInfo
 {
-   double dCalcPepMass;
    double dExpPepMass;                        // protonated MH+ experimental mass
    double dPeptideMassToleranceLow;           // mass tolerance low in amu from experimental mass
    double dPeptideMassToleranceHigh;          // mass tolerance high in amu from experimental mass
@@ -421,7 +420,7 @@ struct DBInfo
    }
 };
 
-// this duplicates PlainPeptideIndex but with modsites and fixed peptide char string for simplified binary write/read
+// this duplicates PlainPeptideIndexStruct but with modsites and fixed peptide char string for simplified binary write/read
 struct DBIndex
 {
    char   szPeptide[MAX_PEPTIDE_LEN];
@@ -462,14 +461,14 @@ struct DBIndex
 
 // This is used for fragment indexing; plain peptides are stored in index
 // file and read in to this data struct.  Same as DBIndex w/o pcVarModSites[]
-struct PlainPeptideIndex
+struct PlainPeptideIndexStruct
 {
    string sPeptide;
    comet_fileoffset_t   lIndexProteinFilePosition;  // points to entry in g_pvProteinsList
    double dPepMass;                                 // MH+ pep mass, unmodified mass; modified mass in FragmentPeptidesStruct
    unsigned short siVarModProteinFilter;            // bitwise representation of mmapProtein
 
-   bool operator==(const PlainPeptideIndex &rhs) const
+   bool operator==(const PlainPeptideIndexStruct &rhs) const
    {
       if (!sPeptide.compare(rhs.sPeptide))
          return true;
@@ -480,7 +479,7 @@ struct PlainPeptideIndex
 
 struct FragmentPeptidesStruct
 {
-   int iWhichPeptide;   // reference to raw peptide (sequence, proteins, etc.) in PlainPeptideIndex
+   int iWhichPeptide;   // reference to raw peptide (sequence, proteins, etc.) in PlainPeptideIndexStruct
    int modNumIdx;
    double dPepMass;     // peptide mass (modified or unmodified) after permuting mods
    short siNtermMod;
@@ -494,13 +493,22 @@ struct FragmentPeptidesStruct
 
 struct SpecLibInfo
 {
-   string strSpecLib;
+   string strSpecLibFile;
+};
+
+struct SpecLibStruct
+{
+   string strName;
+   int iLibEntry;
+   int iNumPeaks;
+   vector<std::pair<double, double>> vPeaks;
 };
 
 extern unsigned int** g_iFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];           // 4D array [thread][precursor_mass][BIN[fragment mass)][which entries in g_vFragmentPeptides]
 extern unsigned int* g_iCountFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];       // array of ints: [thread][precursor_mass][BIN(fragment mass)][which entries in g_vFragmentPeptides]
 extern vector<struct FragmentPeptidesStruct> g_vFragmentPeptides;
-extern vector<PlainPeptideIndex> g_vRawPeptides;
+extern vector<PlainPeptideIndexStruct> g_vRawPeptides;
+extern vector<SpecLibStruct> g_vSpecLib;
 extern bool *g_bIndexPrecursors;     // allocate an array of BIN(max_precursor, protonated) and use a bool to indicate if that precursor is present in input file(s)
 
 
@@ -780,7 +788,7 @@ struct StaticParams
       iIndexDb = 0;
 
       databaseInfo.szDatabase[0] = '\0';
-      speclibInfo.strSpecLib.clear();
+      speclibInfo.strSpecLibFile.clear();
 
       strcpy(szDecoyPrefix, "DECOY_");
       strcpy(szTxtFileExt, "txt");
@@ -988,6 +996,9 @@ extern bool g_bPlainPeptideIndexRead;   // set to true if plain peptide index fi
 extern bool g_bPeptideIndexRead;        // set to true if peptide index file is read
 extern bool g_bSpecLibRead;             // set to true if spectral library file is read
 
+extern bool g_bPerformSpecLibSearch;    // set to true if doing spectral library search
+extern bool g_bPerformDatabaseSearch;   // set to true if doing database search
+
 // Query stores information for peptide scoring and results
 // This struct is allocated for each spectrum/charge combination
 struct Query
@@ -1071,7 +1082,6 @@ struct Query
 
       vdRawFragmentPeakMass.clear();
 
-      _pepMassInfo.dCalcPepMass = 0.0;
       _pepMassInfo.dExpPepMass = 0.0;
       _pepMassInfo.dPeptideMassToleranceLow = 0.0;
       _pepMassInfo.dPeptideMassToleranceHigh = 0.0;

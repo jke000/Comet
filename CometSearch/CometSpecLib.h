@@ -38,6 +38,7 @@ private:
 
    static bool ReadSpecLibRaw(string strSpecLib);
    static bool ReadSpecLibSqlite(string strSpecLib);
+   static bool ReadSpecLibMSP(string strSpecLib);
    static std::vector<double> decodeBlob(const void* blob, int size);
    static void printDoubleVector(const std::vector<double>& vec);
 };
