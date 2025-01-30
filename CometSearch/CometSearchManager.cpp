@@ -1517,6 +1517,7 @@ bool CometSearchManager::InitializeStaticParams()
                // ignore that case is this will cover 99% of the utility.
                if (     (g_staticParams.variableModParameters.varModList[i].dVarModMass== g_staticParams.variableModParameters.varModList[ii].dVarModMass)
                      && (g_staticParams.variableModParameters.varModList[i].dNeutralLoss == g_staticParams.variableModParameters.varModList[ii].dNeutralLoss)
+                     && (g_staticParams.variableModParameters.varModList[i].dNeutralLoss2 == g_staticParams.variableModParameters.varModList[ii].dNeutralLoss2)
                      && (g_staticParams.variableModParameters.varModList[i].iBinaryMod == g_staticParams.variableModParameters.varModList[ii].iBinaryMod)
                      && (g_staticParams.variableModParameters.varModList[i].iMaxNumVarModAAPerMod == g_staticParams.variableModParameters.varModList[ii].iMaxNumVarModAAPerMod)
                      && (g_staticParams.variableModParameters.varModList[i].iMinNumVarModAAPerMod == g_staticParams.variableModParameters.varModList[ii].iMinNumVarModAAPerMod)
@@ -2041,7 +2042,7 @@ bool CometSearchManager::IsValidCometVersion(const string &version)
 {
     // Major version number must match to current binary
     if (strstr(comet_version, version.c_str())
-          || strstr(comet_version, "2024.0"))
+          || strstr(version.c_str(), "2024.0"))
     {
        return true;
     }
@@ -3550,48 +3551,56 @@ bool CometSearchManager::DoSingleSpectrumSearch(int iPrecursorCharge,
                {
                   for (int iMod = 0; iMod < VMODS; ++iMod)
                   {
-                     double dNLmass = g_staticParams.variableModParameters.varModList[iMod].dNeutralLoss;
-
-                     if (dNLmass == 0.0 || g_staticParams.variableModParameters.varModList[iMod].dVarModMass == 0.0)
+                     for (int iWhichNL = 0; iWhichNL < 2 ; ++iWhichNL)
                      {
-                        continue;  // continue if this iMod entry has no mod mass or no NL mass specified
-                     }
+                        double dNLmass;
 
-                     if (isNTerm)
-                     {
-                        // if have not already come across n-term mod residue for variable mod iMod, see if position i contains the variable mod
-                        if (!bAddNtermFragmentNeutralLoss[iMod] && pOutput[0].piVarModSites[i] == iMod + 1)
+                        if (iWhichNL == 0)
+                           dNLmass = g_staticParams.variableModParameters.varModList[iMod].dNeutralLoss;
+                        else
+                           dNLmass = g_staticParams.variableModParameters.varModList[iMod].dNeutralLoss2;
+
+                        if (dNLmass == 0.0 || g_staticParams.variableModParameters.varModList[iMod].dVarModMass == 0.0)
                         {
-                           bAddNtermFragmentNeutralLoss[iMod] = true;
+                           continue;  // continue if this iMod entry has no mod mass or no NL mass specified
                         }
-                     }
-                     else
-                     {
-                        if (!bAddCtermFragmentNeutralLoss[iMod] && pOutput[0].piVarModSites[iPos] == iMod + 1)
+
+                        if (isNTerm)
                         {
-                           bAddCtermFragmentNeutralLoss[iMod] = true;
+                           // if have not already come across n-term mod residue for variable mod iMod, see if position i contains the variable mod
+                           if (!bAddNtermFragmentNeutralLoss[iMod] && pOutput[0].piVarModSites[i] == iMod + 1)
+                           {
+                              bAddNtermFragmentNeutralLoss[iMod] = true;
+                           }
                         }
-                     }
+                        else
+                        {
+                           if (!bAddCtermFragmentNeutralLoss[iMod] && pOutput[0].piVarModSites[iPos] == iMod + 1)
+                           {
+                              bAddCtermFragmentNeutralLoss[iMod] = true;
+                           }
+                        }
 
-                     if ((isNTerm && !bAddNtermFragmentNeutralLoss[iMod])
-                        || (!isNTerm && !bAddCtermFragmentNeutralLoss[iMod]))
-                     {
-                        continue;  // no fragment NL yet in peptide so continue
-                     }
+                        if ((isNTerm && !bAddNtermFragmentNeutralLoss[iMod])
+                           || (!isNTerm && !bAddCtermFragmentNeutralLoss[iMod]))
+                        {
+                           continue;  // no fragment NL yet in peptide so continue
+                        }
 
-                     double dNLfragMz = mz - (dNLmass / ctCharge);
-                     iTmp = BIN(dNLfragMz);
-                     if (iTmp < g_staticParams.iArraySizeGlobal && iTmp >= 0 && pdTmpSpectrum[iTmp] > 0.0)
-                     {
-                        Fragment frag;
-                        frag.intensity = pdTmpSpectrum[iTmp];
-                        frag.mass = mass - dNLmass;
-                        frag.type = ionSeries;
-                        frag.number = fragNumber;
-                        frag.charge = ctCharge;
-                        frag.neutralLoss = true;
-                        frag.neutralLossMass = dNLmass;
-                        matchedFragments.push_back(frag);
+                        double dNLfragMz = mz - (dNLmass / ctCharge);
+                        iTmp = BIN(dNLfragMz);
+                        if (iTmp < g_staticParams.iArraySizeGlobal && iTmp >= 0 && pdTmpSpectrum[iTmp] > 0.0)
+                        {
+                           Fragment frag;
+                           frag.intensity = pdTmpSpectrum[iTmp];
+                           frag.mass = mass - dNLmass;
+                           frag.type = ionSeries;
+                           frag.number = fragNumber;
+                           frag.charge = ctCharge;
+                           frag.neutralLoss = true;
+                           frag.neutralLossMass = dNLmass;
+                           matchedFragments.push_back(frag);
+                        }
                      }
                   }
                }
@@ -3707,7 +3716,6 @@ bool CometSearchManager::DoSingleSpectrumSearchMultiResults(const int topN,
    bSucceeded = CometSearch::RunSearch(tp);
 
    iSize = g_pvQuery.at(0)->iMatchPeptideCount;
-
    if (iSize > g_staticParams.options.iNumStored)
       iSize = g_staticParams.options.iNumStored;
 
@@ -3921,48 +3929,56 @@ bool CometSearchManager::DoSingleSpectrumSearchMultiResults(const int topN,
                   {
                      for (int iMod = 0; iMod < VMODS; ++iMod)
                      {
-                        double dNLmass = g_staticParams.variableModParameters.varModList[iMod].dNeutralLoss;
-
-                        if (dNLmass == 0.0 || g_staticParams.variableModParameters.varModList[iMod].dVarModMass == 0.0)
+                        for (int iWhichNL = 0; iWhichNL < 2 ; ++iWhichNL)
                         {
-                           continue;  // continue if this iMod entry has no mod mass or no NL mass specified
-                        }
+                           double dNLmass;
 
-                        if (isNTerm)
-                        {
-                           // if have not already come across n-term mod residue for variable mod iMod, see if position i contains the variable mod
-                           if (!bAddNtermFragmentNeutralLoss[iMod] && pOutput[idx].piVarModSites[i] == iMod + 1)
+                           if (iWhichNL == 0)
+                              dNLmass = g_staticParams.variableModParameters.varModList[iMod].dNeutralLoss;
+                           else
+                              dNLmass = g_staticParams.variableModParameters.varModList[iMod].dNeutralLoss2;
+
+                           if (dNLmass == 0.0 || g_staticParams.variableModParameters.varModList[iMod].dVarModMass == 0.0)
                            {
-                              bAddNtermFragmentNeutralLoss[iMod] = true;
+                              continue;  // continue if this iMod entry has no mod mass or no NL mass specified
                            }
-                        }
-                        else
-                        {
-                           if (!bAddCtermFragmentNeutralLoss[iMod] && pOutput[idx].piVarModSites[iPos] == iMod + 1)
+
+                           if (isNTerm)
                            {
-                              bAddCtermFragmentNeutralLoss[iMod] = true;
+                              // if have not already come across n-term mod residue for variable mod iMod, see if position i contains the variable mod
+                              if (!bAddNtermFragmentNeutralLoss[iMod] && pOutput[idx].piVarModSites[i] == iMod + 1)
+                              {
+                                 bAddNtermFragmentNeutralLoss[iMod] = true;
+                              }
                            }
-                        }
+                           else
+                           {
+                              if (!bAddCtermFragmentNeutralLoss[iMod] && pOutput[idx].piVarModSites[iPos] == iMod + 1)
+                              {
+                                 bAddCtermFragmentNeutralLoss[iMod] = true;
+                              }
+                           }
 
-                        if ((isNTerm && !bAddNtermFragmentNeutralLoss[iMod])
-                           || (!isNTerm && !bAddCtermFragmentNeutralLoss[iMod]))
-                        {
-                           continue;  // no fragment NL yet in peptide so continue
-                        }
+                           if ((isNTerm && !bAddNtermFragmentNeutralLoss[iMod])
+                              || (!isNTerm && !bAddCtermFragmentNeutralLoss[iMod]))
+                           {
+                              continue;  // no fragment NL yet in peptide so continue
+                           }
 
-                        double dNLfragMz = mz - (dNLmass / ctCharge);
-                        iTmp = BIN(dNLfragMz);
-                        if (iTmp < g_staticParams.iArraySizeGlobal && iTmp >= 0 && pdTmpSpectrum[iTmp] > 0.0)
-                        {
-                           Fragment frag;
-                           frag.intensity = pdTmpSpectrum[iTmp];
-                           frag.mass = mass - dNLmass;
-                           frag.type = ionSeries;
-                           frag.number = fragNumber;
-                           frag.charge = ctCharge;
-                           frag.neutralLoss = true;
-                           frag.neutralLossMass = dNLmass;
-                           eachMatchedFragments.push_back(frag);
+                           double dNLfragMz = mz - (dNLmass / ctCharge);
+                           iTmp = BIN(dNLfragMz);
+                           if (iTmp < g_staticParams.iArraySizeGlobal && iTmp >= 0 && pdTmpSpectrum[iTmp] > 0.0)
+                           {
+                              Fragment frag;
+                              frag.intensity = pdTmpSpectrum[iTmp];
+                              frag.mass = mass - dNLmass;
+                              frag.type = ionSeries;
+                              frag.number = fragNumber;
+                              frag.charge = ctCharge;
+                              frag.neutralLoss = true;
+                              frag.neutralLossMass = dNLmass;
+                              eachMatchedFragments.push_back(frag);
+                           }
                         }
                      }
                   }

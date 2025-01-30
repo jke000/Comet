@@ -97,11 +97,6 @@ class CometSearchManager;
 #define XCORR_CUTOFF                1E-8   // some near-zero cutoff
 #endif
 
-struct msdata                    // used in the preprocessing
-{
-   int    iIon;
-   double dIntensity;
-};
 
 struct Options
 {
@@ -302,7 +297,6 @@ struct PreprocessStruct
 {
    int    iHighestIon;
    double dHighestIntensity;
-   struct msdata pTmpSpData[NUM_SP_IONS];
 };
 
 struct OBOStruct           // stores info read from OBO file
@@ -827,6 +821,7 @@ struct StaticParams
          variableModParameters.varModList[i].iWhichTerm = 0;             // specify N (0) or C-term (1)
          variableModParameters.varModList[i].dVarModMass = 0.0;
          variableModParameters.varModList[i].dNeutralLoss = 0.0;
+         variableModParameters.varModList[i].dNeutralLoss2 = 0.0;
          strcpy(variableModParameters.varModList[i].szVarModChar, "X");
 
 #ifdef CRUX

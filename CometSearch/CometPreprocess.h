@@ -119,7 +119,6 @@ private:
                             struct PreprocessStruct *pPre);
    static bool IsValidInputType(int inputType);
 
-
    // Private member variables
    static Mutex _maxChargeMutex;
    static bool _bFirstScan;
