@@ -277,7 +277,7 @@ bool CometPreprocess::ReadPrecursors(MSReader &mstReader)
 
                double dToleranceLow = 0;
                double dToleranceHigh = 0;
-   
+
                if (g_staticParams.tolerances.iMassToleranceUnits == 0) // amu
                {
                   dToleranceLow  = g_staticParams.tolerances.dInputToleranceMinus;

@@ -110,7 +110,8 @@ struct Options
    int iEndCharge;
    int iMaxFragmentCharge;
    int iMaxPrecursorCharge;
-   int iMSLevel;                 // mzXML only
+   int iMSLevel;                 // filter query scans in raw/mzML/mzXML input by ms level (aka MS2, MS3)^M
+   int iSpecLibMSLevel;          // filter speclib scans in raw/mzML/mzXML input by ms level (aka MS2, MS3)^M
    int iMinPeaks;
    int iRemovePrecursor;         // 0=no, 1=yes, 2=ETD precursors, 3=phosphate neutral loss
    int iDecoySearch;             // 0=no, 1=concatenated search, 2=separate decoy search
@@ -485,7 +486,7 @@ struct FragmentPeptidesStruct
    }
 };
 
-struct SpecLibInfo
+struct SpecLibInfo      // why a struct for just a string?
 {
    string strSpecLibFile;
 };
@@ -495,16 +496,18 @@ struct SpecLibStruct
    string strName;
    int iLibEntry;
    int iNumPeaks;
-   vector<std::pair<double, double>> vPeaks;
+   int iCharge;
+   double dMW;
+   vector<std::pair<double, double>> vSpecLibPeaks;
 };
 
-extern unsigned int** g_iFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];           // 4D array [thread][precursor_mass][BIN[fragment mass)][which entries in g_vFragmentPeptides]
-extern unsigned int* g_iCountFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];       // array of ints: [thread][precursor_mass][BIN(fragment mass)][which entries in g_vFragmentPeptides]
+extern unsigned int **g_iFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];           // 4D array [thread][precursor_mass][BIN[fragment mass)][which entries in g_vFragmentPeptides]
+extern unsigned int *g_iCountFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];       // array of ints: [thread][precursor_mass][BIN(fragment mass)][which entries in g_vFragmentPeptides]
 extern vector<struct FragmentPeptidesStruct> g_vFragmentPeptides;
 extern vector<PlainPeptideIndexStruct> g_vRawPeptides;
-extern vector<SpecLibStruct> g_vSpecLib;
 extern bool *g_bIndexPrecursors;     // allocate an array of BIN(max_precursor, protonated) and use a bool to indicate if that precursor is present in input file(s)
-
+extern vector<SpecLibStruct> g_vSpecLib;
+extern vector<vector<unsigned int>> g_vulSpecLibPrecursorIndex;  // this will be an vector of vectors<unsigned int>
 
 struct IndexProteinStruct  // for indexed database
 {
@@ -652,6 +655,7 @@ struct ToleranceParams
    double dInputTolerancePlus;    // raw tolerance value from param file, upper bound; gets converted to dPeptideMassTolerancePlus
    double dFragmentBinSize;
    double dFragmentBinStartOffset;
+   double dBinSizePrecursor;
 
    ToleranceParams& operator=(ToleranceParams& a)
    {
@@ -662,6 +666,7 @@ struct ToleranceParams
       dInputTolerancePlus = a.dInputTolerancePlus;
       dFragmentBinSize = a.dFragmentBinSize;
       dFragmentBinStartOffset = a.dFragmentBinStartOffset;
+      dBinSizePrecursor = a.dBinSizePrecursor;
 
       return *this;
    }
@@ -955,6 +960,7 @@ struct StaticParams
       tolerances.dInputTolerancePlus = 3.0;                 // peptide_mass_tolerance plus
       tolerances.dFragmentBinSize = 1.0005;
       tolerances.dFragmentBinStartOffset = 0.4;
+      tolerances.dBinSizePrecursor = 0.1;                   // FIX
 
       bSkipToStartScan = true;
    }
@@ -1013,6 +1019,9 @@ struct Query
    double dLowestXcorrScore;
    double dLowestDecoyXcorrScore;
 
+   short siLowestSpecLibScoreIndex;
+   double dLowestSpecLibScore;
+
    int iMinXcorrHisto;    // min xcorr score for xcorr histogram to address good E-values for poor/sparse spectra
 
    double dMangoIndex;      // scan number decimal precursor value i.e. 2401.001 for scan 2401, first precursor/z pair
@@ -1061,6 +1070,9 @@ struct Query
 
       dLowestXcorrScore = XCORR_CUTOFF;
       dLowestDecoyXcorrScore = XCORR_CUTOFF;
+
+      siLowestSpecLibScoreIndex = 0;
+      dLowestSpecLibScore = -999;
 
       dMangoIndex = 0.0;
 

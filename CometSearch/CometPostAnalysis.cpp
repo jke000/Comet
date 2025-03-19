@@ -554,10 +554,10 @@ void CometPostAnalysis::CalculateSP(Results *pOutput,
                                        dNewMass = dFragmentIonMass - (iScaleFactor * g_staticParams.variableModParameters.varModList[iMod].dNeutralLoss2 / ctCharge);
                                     }
 
-                                    if (dNewMass >= 0)
-                                    {
-                                       int iFragmentIonMass = BIN(dNewMass);
+                                    int iFragmentIonMass = BIN(dNewMass);
 
+                                    if (iFragmentIonMass > 0 && iFragmentIonMass < g_pvQuery.at(iWhichQuery)->iSpScoreData)
+                                    {
                                        fSpScore = FindSpScore(g_pvQuery.at(iWhichQuery), iFragmentIonMass, iMax);
 
                                        if (fSpScore > FLOAT_ZERO)
@@ -600,10 +600,10 @@ void CometPostAnalysis::CalculateSP(Results *pOutput,
                                        dNewMass = dFragmentIonMass - (iScaleFactor * g_staticParams.variableModParameters.varModList[iMod].dNeutralLoss2 / ctCharge);
                                     }
 
-                                    if (dNewMass >= 0)
-                                    {
-                                       int iFragmentIonMass = BIN(dNewMass);
+                                    int iFragmentIonMass = BIN(dNewMass);
 
+                                    if (iFragmentIonMass > 0 && iFragmentIonMass < g_pvQuery.at(iWhichQuery)->iSpScoreData)
+                                    {
                                        fSpScore = FindSpScore(g_pvQuery.at(iWhichQuery), iFragmentIonMass, iMax);
 
                                        if (fSpScore > FLOAT_ZERO)

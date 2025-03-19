@@ -28,9 +28,15 @@ public:
    CometSpecLib();
    ~CometSpecLib();
 
-   static bool ReadSpecLib(string strSpecLibFile);
+   static bool LoadSpecLib(string strSpecLibFile);
    static bool SearchSpecLib(int iWhichQuery,
                              ThreadPool *tp);
+   static double ScoreSpecLib(Query *it,
+                              unsigned int iWhichSpecLib);
+   static void StoreSpecLib(Query *it,
+                            unsigned int iWhichSpecLib,
+                            double dSpecLibScore);
+
 
 private:
 
@@ -41,6 +47,10 @@ private:
    static bool ReadSpecLibMSP(string strSpecLib);
    static std::vector<double> decodeBlob(const void* blob, int size);
    static void printDoubleVector(const std::vector<double>& vec);
+   static void SetSpecLibPrecursorIndex(double dNeutralMass,
+                                        int iCharge,
+                                        size_t iWhichSpecLib);
+
 };
 
 #endif // _COMETSPECLIB_H_

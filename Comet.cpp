@@ -1332,6 +1332,14 @@ void LoadParameters(char *pszParamsFile,
                   sprintf(szParamStringVal, "%d", iIntParam);
                   pSearchMgr->SetParam("ms_level", szParamStringVal, iIntParam);
                }
+               else if (!strcmp(szParamName, "speclib_ms_level"))
+               {
+                  iIntParam = 0;
+                  sscanf(szParamVal, "%d", &iIntParam);
+                  szParamStringVal[0] = '\0';
+                  sprintf(szParamStringVal, "%d", iIntParam);
+                  pSearchMgr->SetParam("speclib_ms_level", szParamStringVal, iIntParam);
+               }
                else if (!strcmp(szParamName, "activation_method"))
                {
                   char szActivationMethod[24];
@@ -1739,6 +1747,13 @@ database_name = /some/path/db.fasta\n\
 decoy_search = 0                       # 0=no (default), 1=internal decoy concatenated, 2=internal decoy separate\n\
 \n\
 num_threads = 0                        # 0=poll CPU to set num threads; else specify num threads directly (max %d)\n\n", MAX_THREADS);
+
+   if (iPrintParams == 2)
+   {
+      fprintf(fp,
+"\nspeclib_name = /some/path/speclib.file\n\
+speclib_ms_level = 1\n\n");
+   }
 
    if (iPrintParams == 2)
    {

@@ -29,6 +29,7 @@
 #include "CometStatus.h"
 #include "CometFragmentIndex.h"
 #include "CometPeptideIndex.h"
+#include "CometSpecLib.h"
 
 
 #include <sstream>
@@ -48,11 +49,14 @@ CometStatus                   g_cometStatus;
 string                        g_sCometVersion;
 
 vector<vector<comet_fileoffset_t>> g_pvProteinsList;
-unsigned int** g_iFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];        // stores fragment index; [thread][pepmass][BIN(mass)][which g_vFragmentPeptides entries]
-unsigned int* g_iCountFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];      // stores counts of fragment index; [thread][pepmass][BIN(mass)]
-bool* g_bIndexPrecursors;                                   // array for BIN(precursors), set to true if precursor present in file
+unsigned int **g_iFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];      // stores fragment index; [thread][pepmass][BIN(mass)][which g_vFragmentPeptides entries]
+unsigned int *g_iCountFragmentIndex[FRAGINDEX_MAX_THREADS][FRAGINDEX_PRECURSORBINS];  // stores counts of fragment index; [thread][pepmass][BIN(mass)]
+bool *g_bIndexPrecursors;                                   // array for BIN(precursors), set to true if precursor present in file
 vector<struct FragmentPeptidesStruct> g_vFragmentPeptides;  // each peptide is represented here iWhichPeptide, which mod if any, calculated mass
 vector<PlainPeptideIndexStruct> g_vRawPeptides;             // list of unmodified peptides and their proteins as file pointers
+vector<vector<unsigned int>> g_vulSpecLibPrecursorIndex;    // mass index for SpecLib
+vector<SpecLibStruct> g_vSpecLib;                           // stores the SpecLib
+
 bool g_bPlainPeptideIndexRead = false;
 bool g_bPeptideIndexRead = false;
 bool g_bSpecLibRead = false;
@@ -1208,7 +1212,6 @@ bool CometSearchManager::InitializeStaticParams()
          g_staticParams.options.iSpectrumBatchSize = iIntData;
    }
 
-   iIntData = 0;
    if (GetParamValue("minimum_peaks", iIntData))
    {
       if (iIntData >= 0)
@@ -1246,7 +1249,6 @@ bool CometSearchManager::InitializeStaticParams()
       }
    }
 
-   iIntData = 0;
    if (GetParamValue("max_fragment_charge", iIntData))
    {
       if (iIntData > MAX_FRAGMENT_CHARGE)
@@ -1258,7 +1260,6 @@ bool CometSearchManager::InitializeStaticParams()
       // else will go to default value (3)
    }
 
-   iIntData = 0;
    if (GetParamValue("max_precursor_charge", iIntData))
    {
       if (iIntData > MAX_PRECURSOR_CHARGE)
@@ -1753,7 +1754,7 @@ bool CometSearchManager::InitializeStaticParams()
 
    if (g_staticParams.iIndexDb == 1)
    {
-      g_bIndexPrecursors = (bool*) malloc(BIN(g_staticParams.options.dPeptideMassHigh));
+      g_bIndexPrecursors = (bool*) malloc(BIN(g_staticParams.options.dPeptideMassHigh) * sizeof(bool));
       if (g_bIndexPrecursors == NULL)
       {
          printf("\n Error cannot allocate memory for g_bIndexPrecursors(%d)\n", BIN(g_staticParams.options.dPeptideMassHigh));
@@ -1768,6 +1769,14 @@ bool CometSearchManager::InitializeStaticParams()
       }
    }
 
+printf("OK g_staticParams.speclibInfo.strSpecLibFile %s\n", g_staticParams.speclibInfo.strSpecLibFile.c_str() );
+   if (g_staticParams.speclibInfo.strSpecLibFile.length() > 0)
+   {
+      // set this such that can access all SpecLib entries at specific precursor mass bin
+      // by accessing g_vulSpecLibPrecursorIndex.at(massbin)
+      g_vulSpecLibPrecursorIndex.resize(BINPREC(g_staticParams.options.dPeptideMassHigh));
+printf("OK setting size g_vulSpecLibPrecursorIndex %d, masshigh %lf, bin(masshigh) %d\n", g_vulSpecLibPrecursorIndex.size(), g_staticParams.options.dPeptideMassHigh, BIN(g_staticParams.options.dPeptideMassHigh));
+   }
    if (g_staticParams.tolerances.dInputToleranceMinus > g_staticParams.tolerances.dInputTolerancePlus)
    {
       printf("\n Error: mass_tolerance_lower is greater than mass_tolerance_upper so no peptides will be analyzed.\n");
@@ -2246,6 +2255,13 @@ bool CometSearchManager::DoSearch()
          cout << " - read precursors ... skipping" << endl;
          fflush(stdout);
       }
+   }
+
+   if (g_bPerformSpecLibSearch)
+   {
+      printf("\nOK Loading SpecLib\n");
+      CometSpecLib::LoadSpecLib(g_staticParams.speclibInfo.strSpecLibFile);
+      printf("\nOK Done Loading SpecLib\n");
    }
 
    for (int i=0; i<(int)g_pvInputFiles.size(); ++i)
