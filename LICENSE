@@ -197,3 +197,8 @@
    - Component:        twiddle.c
    - Original Author:  Matthew Belmonte
    - Original Source:  https://www.netlib.org/toms-2014-06-10/382
+   
+   - Component:        HDF5 library
+   - Original Author:  The HDF Group
+   - Original Source:  https://hdfgroup.org/solutions/hdf5/
+   - Original License: see MSToolkit/extern/HDF5/LICENSE
