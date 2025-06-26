@@ -116,11 +116,15 @@ bool MSFileReaderWrapper::ReadPrecursorPeaks(String^ msFileName, int fragmentSca
     // precursor scan.
     Spectrum spec;
     scanNum--;
+
+    _pMSReader->readFile(szMSFileName, spec, fragmentScanNum);
+    double dCurrRT = spec.getRTime();   //RT in minutes
+
     while ((!_pMSReader->readFile(szMSFileName, spec, scanNum)) && (scanNum > 0))
     {
         scanNum--;
 
-        if (fragmentScanNum - scanNum > 50)
+        if (dCurrRT - spec.getRTime() > 3.0)  // break if over 3 minutes
             return false;
     }
 

@@ -89,7 +89,7 @@ void Usage(char *pszCmd)
    snprintf(szTmp, iSize, " Comet usage:  %s [options] <input_files>\n", pszCmd);
    logout(szTmp);
    logout("\n");
-   logout(" Supported input formats include mzXML, mzML, Thermo raw, mgf, and ms2 variants (cms2, bms2, ms2)\n");
+   logout(" Supported input formats include mzXML, mzML, mzMLb, Thermo raw, mgf, and ms2 variants (cms2, bms2, ms2)\n");
 
    logout("\n");
    logout("       options:  -p         to print out a comet.params.new file\n");

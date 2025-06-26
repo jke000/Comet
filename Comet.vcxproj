@@ -92,8 +92,12 @@
       <EnableCOMDATFolding>
       </EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>ws2_32.lib;setargv.obj;MSToolkit.lib;MSToolkitExtern.lib;CometSearch.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libhdf5_cpp.lib;libhdf5.lib
+;zlib-static.lib;
+libszaec.lib;libaec.lib
+;Shlwapi.lib;ws2_32.lib
+;Advapi32.lib;setargv.obj;CometSearch.lib;MSToolkit.lib;MSToolkitExtern.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(SolutionDir)\MSToolkit\extern\HDF5\;D:\Work\Comet-jke000\MSToolkit\extern\HDF5</AdditionalLibraryDirectories>
       <LargeAddressAware>true</LargeAddressAware>
     </Link>
   </ItemDefinitionGroup>

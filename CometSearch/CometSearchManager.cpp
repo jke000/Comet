@@ -97,8 +97,8 @@ static InputType GetInputType(const char *pszFileName)
    if (!STRCMP_IGNORE_CASE(pszFileName + iLen - 6, ".mzXML")
          || !STRCMP_IGNORE_CASE(pszFileName + iLen - 5, ".mzML")
          || !STRCMP_IGNORE_CASE(pszFileName + iLen - 9, ".mzXML.gz")
-         || !STRCMP_IGNORE_CASE(pszFileName + iLen - 8, ".mzML.gz"))
-
+         || !STRCMP_IGNORE_CASE(pszFileName + iLen - 8, ".mzML.gz")
+         || !STRCMP_IGNORE_CASE(pszFileName + iLen - 6, ".mzMLb"))
    {
       return InputType_MZXML;
    }
@@ -2319,7 +2319,8 @@ bool CometSearchManager::DoSearch()
    for (int i=0; i<(int)g_pvInputFiles.size(); ++i)
    {
       bSucceeded = UpdateInputFile(g_pvInputFiles.at(i));
-      if (!bSucceeded)
+
+     if (!bSucceeded)
          break;
 
       time_t tStartTime;
